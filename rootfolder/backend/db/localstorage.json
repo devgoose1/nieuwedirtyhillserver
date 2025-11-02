@@ -1,0 +1,42 @@
+{
+  "runs": {
+    "Fietser1": [
+      {
+        "checkpointId": "start",
+        "tijd": "14:00"
+      },
+      {
+        "checkpointId": "midden",
+        "tijd": "14:15"
+      },
+      {
+        "checkpointId": "eind",
+        "tijd": "14:30"
+      },
+      {
+        "runtime": 30
+      }
+    ],
+    "Fietser2": [
+      {
+        "checkpointId": "start",
+        "tijd": "13:30"
+      },
+      {
+        "checkpointId": "midden",
+        "tijd": "13:35"
+      },
+      {
+        "checkpointId": "midden",
+        "tijd": "13:37"
+      },
+      {
+        "checkpointId": "eind",
+        "tijd": "13:45"
+      },
+      {
+        "runtime": 15
+      }
+    ]
+  }
+}

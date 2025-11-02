@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Raspberry Test Site</title>
+        <link rel="stylesheet" href="styles.css">
+        <script src="main.js" defer></script>
+    </head>
+    <body>
+        <div class="navbar">
+            <a href="index.html">testgegevens</a>
+            <a href="leaderboard.html">leaderboard</a>
+        </div>
+        <div class="form-container">
+            <h2>Verstuur test data</h2>
+
+            <label>User-ID</label>
+            <input id="userId" placeholder="e.g. 12345" />
+
+            <label>Checkpoint</label>
+            <select id="checkpoint">
+                <option value="start">Startpunt</option>
+                <option value="midden">Middenpunt</option>
+                <option value="eind">Eindpunt</option>
+            </select>
+
+            <label>Tijd (HH:MM)</label>
+            <input id="tijd" type="tijd" />
+
+            <button onclick="verstuurData()">Versturen</button>
+        </div>
+
+        <div class="log" id="log"></div>
+    </body>
+</html>
