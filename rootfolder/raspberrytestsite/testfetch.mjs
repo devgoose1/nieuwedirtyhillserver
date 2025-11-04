@@ -6,7 +6,7 @@ async function verstuurData(userId, checkpointId, tijd) {
     console.log("Verzenden:", JSON.stringify(data, null, 2));
 
     try {
-        const res = await fetch("http://localhost:5000/api/checkpoint", {
+        const res = await fetch("https://nieuwedirtyhillserver.onrender.com/api/checkpoint", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data)
