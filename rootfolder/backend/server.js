@@ -81,11 +81,13 @@ app.get('/senddata/publiclb', (req, res) => {
     for (const userId in runs) {
         const userRuns = runs[userId]; // array van runs
 
-        // Vind de best run van deze user
+        if (!Array.isArray(userRuns)) continue; // skip corrupt/oud formaat
+
         let bestRuntime = Infinity;
         let lastCheckpointTime = null;
 
         userRuns.forEach(run => {
+            if (!Array.isArray(run)) return; // skip oud formaat of corrupt data
             const runtimeEntry = run.find(c => c.runtime !== undefined);
             if (runtimeEntry && runtimeEntry.runtime < bestRuntime) {
                 bestRuntime = runtimeEntry.runtime;
@@ -102,13 +104,14 @@ app.get('/senddata/publiclb', (req, res) => {
         }
     }
 
+
     // Sorteer op runtime, kleinste eerst
     leaderboard.sort((a, b) => a.runtime - b.runtime);
 
     res.json(leaderboard);
 });
 
-
+// Return personal leaderboard
 app.get('/senddata/personallb/:userId', (req, res) => {
     const runs = localstorage.getItem('runs') || {};
     const userId = req.params.userId;
@@ -119,6 +122,7 @@ app.get('/senddata/personallb/:userId', (req, res) => {
 
     // Haal alle runtimes van deze user
     const leaderboard = runs[userId]
+        .filter(run => Array.isArray(run)) // alleen arrays
         .map(run => {
             const runtimeEntry = run.find(c => c.runtime !== undefined);
             if (!runtimeEntry) return null;
@@ -130,6 +134,7 @@ app.get('/senddata/personallb/:userId', (req, res) => {
         })
         .filter(r => r !== null)
         .sort((a, b) => a.runtime - b.runtime);
+
 
     res.json({ leaderboard });
 });
