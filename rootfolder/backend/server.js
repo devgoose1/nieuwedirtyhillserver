@@ -16,7 +16,7 @@ if (!fs.existsSync("db")) fs.mkdirSync("db");
 if (!fs.existsSync("db/localstorage.json")) fs.writeFileSync("db/localstorage.json", "{}");
 
 // Route to receive test site data
-app.post('/api/checkpoint', (req, res) => {
+app.post('/getdata/checkpoint', (req, res) => {
     const { userId, checkpointId, tijd } = req.body;
     
     if (!userId || !checkpointId || !tijd) {
@@ -72,7 +72,7 @@ app.listen(PORT, () => console.log("Server running on: http://localhost:" + PORT
 
 
 // Return leaderboard
-app.get('/api/leaderboard', (req, res) => {
+app.get('/senddata/publiclb', (req, res) => {
     const runs = localstorage.getItem('runs');
 
     const leaderboard = [];

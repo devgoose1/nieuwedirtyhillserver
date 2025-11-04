@@ -1,6 +1,6 @@
 async function loadLeaderboard() {
     try {
-        const res = await fetch('http://localhost:5000/api/leaderboard');
+        const res = await fetch('http://localhost:5000/senddata/publiclb');
         const leaderboard = await res.json();
 
         const container = document.getElementById('leaderboard');

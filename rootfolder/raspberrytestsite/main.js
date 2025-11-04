@@ -12,7 +12,7 @@ async function verstuurData() {
 
     try {
         // Send POST request to backend
-        const res = await fetch("http://localhost:5000/api/checkpoint", {
+        const res = await fetch("http://localhost:5000/getdata/checkpoint", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data)
