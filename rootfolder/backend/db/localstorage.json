@@ -41,5 +41,18 @@
   },
   "users": {
 
+  },
+  "socialLeaderboards": {
+    "SLB1": {
+      "creator": "Fietser1",
+      "members": ["Fietser1", "Fietser2"],
+      "invitations": []
+    },
+    "SLB2": {
+      "creator": "Fietser2",
+      "members": ["Fietser2"],
+      "invitations": []
+    }
   }
+
 }

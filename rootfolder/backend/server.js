@@ -140,24 +140,6 @@ app.get('/senddata/personallb/:userId', (req, res) => {
 });
 
 
-
-
-
-
-
-
-// Return social leaderboard
-
-
-
-
-
-
-
-
-
-
-
 // Login
 app.post('/senddata/login', (req, res) => {
     const { username, password } = req.body;
@@ -187,4 +169,133 @@ app.post('/senddata/register', (req, res) => {
     localstorage.setItem('users', db);
 
     res.json({ success: true, message: 'Registration successful' });
+});
+
+
+// Maak een nieuwe social leaderboard
+app.post('/senddata/slb/create', (req, res) => {
+    const { groupName, creator } = req.body;
+    if (!groupName || !creator) return res.status(400).json({ error: 'Missing fields' });
+
+    let slbs = localstorage.getItem('socialLeaderboards') || {};
+    if (slbs[groupName]) return res.json({ success: false, message: 'Group already exists' });
+
+    slbs[groupName] = {
+        creator,
+        members: [creator],
+        invitations: []
+    };
+
+    localstorage.setItem('socialLeaderboards', slbs);
+    res.json({ success: true, message: 'Social leaderboard created', groupName });
+});
+
+
+// Nodig een gebruiker uit voor een SLB-groep
+app.post('/senddata/slb/invite', (req, res) => {
+    const { groupName, username, invitedBy } = req.body;
+    if (!groupName || !username || !invitedBy) return res.status(400).json({ error: 'Missing fields' });
+
+    let slbs = localstorage.getItem('socialLeaderboards') || {};
+    if (!slbs[groupName]) return res.status(404).json({ error: 'Group not found' });
+
+    // Voeg toe aan invitations
+    slbs[groupName].invitations.push({ username, invitedBy });
+    localstorage.setItem('socialLeaderboards', slbs);
+    res.json({ success: true, message: 'Invitation sent' });
+});
+
+
+// Haal alle uitnodigingen op voor een user
+app.get('/senddata/slb/invitations/:username', (req, res) => {
+    const username = req.params.username;
+    let slbs = localstorage.getItem('socialLeaderboards') || {};
+
+    const invites = [];
+    for (const groupName in slbs) {
+        slbs[groupName].invitations.forEach(invite => {
+            if (invite.username === username) {
+                invites.push({
+                    groupName,
+                    invitedBy: invite.invitedBy
+                });
+            }
+        });
+    }
+
+    res.json({ invitations: invites });
+});
+
+
+
+// Accept invite
+app.post('/senddata/slb/accept', (req, res) => {
+    const { groupName, username } = req.body;
+    let slbs = localstorage.getItem('socialLeaderboards') || {};
+    if (!slbs[groupName]) return res.status(404).json({ error: 'Group not found' });
+
+    // Voeg user toe aan members als nog niet aanwezig
+    if (!slbs[groupName].members.includes(username)) {
+        slbs[groupName].members.push(username);
+    }
+
+    // Verwijder uitnodiging
+    slbs[groupName].invitations = slbs[groupName].invitations.filter(inv => inv.username !== username);
+
+    localstorage.setItem('socialLeaderboards', slbs);
+    res.json({ success: true, message: 'Joined group', groupName });
+});
+
+
+
+// Alle social leaderboards waar user lid van is
+app.get('/senddata/slb/mygroups/:username', (req, res) => {
+    const username = req.params.username;
+    let slbs = localstorage.getItem('socialLeaderboards') || {};
+
+    const groups = [];
+    for (const groupName in slbs) {
+        if (slbs[groupName].members.includes(username)) {
+            groups.push(groupName);
+        }
+    }
+
+    res.json({ groups });
+});
+
+
+
+// Beste tijden van alle leden van een SLB-groep
+app.get('/senddata/slb/:groupName', (req, res) => {
+    const groupName = req.params.groupName;
+    let slbs = localstorage.getItem('socialLeaderboards') || {};
+    let runs = localstorage.getItem('runs') || {};
+
+    if (!slbs[groupName]) return res.status(404).json({ error: 'Group not found' });
+
+    const members = slbs[groupName].members;
+    const leaderboard = [];
+
+    members.forEach(userId => {
+        const userRuns = runs[userId] || [];
+        if (!Array.isArray(userRuns)) return;
+
+        let bestRuntime = Infinity;
+        userRuns.forEach(run => {
+            if (!Array.isArray(run)) return;
+            const runtimeEntry = run.find(c => c.runtime !== undefined);
+            if (runtimeEntry && runtimeEntry.runtime < bestRuntime) {
+                bestRuntime = runtimeEntry.runtime;
+            }
+        });
+
+        if (bestRuntime !== Infinity) {
+            leaderboard.push({ userId, runtime: bestRuntime });
+        }
+    });
+
+    // Sorteer op runtime
+    leaderboard.sort((a, b) => a.runtime - b.runtime);
+
+    res.json({ groupName, leaderboard });
 });
