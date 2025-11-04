@@ -15,7 +15,7 @@ app.use(bodyParser.json());
 if (!fs.existsSync("db")) fs.mkdirSync("db");
 if (!fs.existsSync("db/localstorage.json")) fs.writeFileSync("db/localstorage.json", "{}");
 
-// Route to receive test site data
+// Receive checkpoint data
 app.post('/getdata/checkpoint', (req, res) => {
     const { userId, checkpointId, tijd } = req.body;
     
@@ -23,42 +23,42 @@ app.post('/getdata/checkpoint', (req, res) => {
         return res.status(400).json({ error: 'Missing fields (userId, checkpointId, tijd)' });
     }
 
-    // Get current runs data or initialize
-    let runs = localstorage.getItem('runs');
-    if (!runs) runs = {};
+    // Haal huidige runs op of initialiseer
+    let runs = localstorage.getItem('runs') || {};
+    if (!runs[userId]) runs[userId] = [];
 
-    // If start checkpoint, create new run
+    // Start checkpoint -> nieuwe run toevoegen
     if (checkpointId === 'start') {
-        runs[userId] = [{ checkpointId, tijd }];
-    }
+        runs[userId].push([{ checkpointId, tijd }]);
+    } else {
+        // Voor midden of eind -> voeg toe aan laatste run
+        const currentRun = runs[userId][runs[userId].length - 1];
+        if (!currentRun) {
+            return res.status(400).json({ error: 'No start checkpoint found for this run' });
+        }
 
-    // If middle checkpoint -> append
-    else if (checkpointId === 'midden') {
-        if (!runs[userId]) runs[userId] = [];
-        runs[userId].push({ checkpointId, tijd });
-    }
+        currentRun.push({ checkpointId, tijd });
 
-    // If end checkpoint -> append + calculate time
-    else if (checkpointId === 'eind') {
-        if (!runs[userId]) runs[userId] = [];
-        runs[userId].push({ checkpointId, tijd });
-
-        const start = runs[userId].find(c => c.checkpointId === 'start');
-        if (start) {
-            const runtime = calculateRuntime(start.tijd, tijd);
-            runs[userId].push({ runtime });
+        // Eind checkpoint -> runtime berekenen
+        if (checkpointId === 'eind') {
+            const start = currentRun.find(c => c.checkpointId === 'start');
+            if (start) {
+                const runtime = calculateRuntime(start.tijd, tijd);
+                currentRun.push({ runtime });
+            }
         }
     }
 
-    // Save updated runs
+    // Sla updated runs op
     localstorage.setItem('runs', runs);
 
     res.json({
         message: "Checkpoint saved successfully",
         user: userId,
-        data: runs[userId]
+        data: runs[userId][runs[userId].length - 1] // retourneer de laatste run
     });
 });
+
 
 // Helper: calculate time in minutes
 function calculateRuntime(startTime, endTime) {
@@ -73,36 +73,42 @@ app.listen(PORT, () => console.log("Server running on: https://nieuwedirtyhillse
 
 // Return public leaderboard
 app.get('/senddata/publiclb', (req, res) => {
-    const runs = localstorage.getItem('runs');
+    const runs = localstorage.getItem('runs') || {};
 
     const leaderboard = [];
 
     // Iterate each user
     for (const userId in runs) {
-        const userRuns = runs[userId];
-        // Filter out runs without runtime
-        const completedRuns = userRuns.filter(run => run.runtime !== undefined);
-        if (completedRuns.length === 0) continue;
+        const userRuns = runs[userId]; // array van runs
 
-        // Get the **best run** (smallest runtime)
-        const bestRun = completedRuns.reduce((prev, curr) => {
-            return curr.runtime < prev.runtime ? curr : prev;
+        // Vind de best run van deze user
+        let bestRuntime = Infinity;
+        let lastCheckpointTime = null;
+
+        userRuns.forEach(run => {
+            const runtimeEntry = run.find(c => c.runtime !== undefined);
+            if (runtimeEntry && runtimeEntry.runtime < bestRuntime) {
+                bestRuntime = runtimeEntry.runtime;
+                lastCheckpointTime = runtimeEntry.tijd || run[run.length - 1].tijd;
+            }
         });
 
-        leaderboard.push({
-            userId,
-            runtime: bestRun.runtime,
-            lastCheckpointTime: bestRun.tijd
-        });
+        if (bestRuntime !== Infinity) {
+            leaderboard.push({
+                userId,
+                runtime: bestRuntime,
+                lastCheckpointTime
+            });
+        }
     }
 
-    // Sort leaderboard by runtime ascending (best first)
+    // Sorteer op runtime, kleinste eerst
     leaderboard.sort((a, b) => a.runtime - b.runtime);
 
     res.json(leaderboard);
 });
 
-// Return personal leaderboard
+
 app.get('/senddata/personallb/:userId', (req, res) => {
     const runs = localstorage.getItem('runs') || {};
     const userId = req.params.userId;
@@ -111,19 +117,23 @@ app.get('/senddata/personallb/:userId', (req, res) => {
         return res.json({ message: "No runs found for this user", leaderboard: [] });
     }
 
-    // Filter alle runs van de user op entries met runtime
-    const completedRuns = runs[userId].filter(run => run.runtime !== undefined);
-    const leaderboard = completedRuns.map(run => ({
-        userId,
-        runtime: run.runtime,
-        lastCheckpointTime: run.tijd || null
-    }));
-
-    // Sorteer op snelste tijd
-    leaderboard.sort((a, b) => a.runtime - b.runtime);
+    // Haal alle runtimes van deze user
+    const leaderboard = runs[userId]
+        .map(run => {
+            const runtimeEntry = run.find(c => c.runtime !== undefined);
+            if (!runtimeEntry) return null;
+            return {
+                userId,
+                runtime: runtimeEntry.runtime,
+                lastCheckpointTime: runtimeEntry.tijd || run[run.length - 1].tijd
+            };
+        })
+        .filter(r => r !== null)
+        .sort((a, b) => a.runtime - b.runtime);
 
     res.json({ leaderboard });
 });
+
 
 
 
