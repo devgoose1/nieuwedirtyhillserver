@@ -68,10 +68,10 @@ function calculateRuntime(startTime, endTime) {
 }
 
 
-app.listen(PORT, () => console.log("Server running on: http://localhost:" + PORT));
+app.listen(PORT, () => console.log("Server running on: https://nieuwedirtyhillserver.onrender.com:" + PORT));
 
 
-// Return leaderboard
+// Return public leaderboard
 app.get('/senddata/publiclb', (req, res) => {
     const runs = localstorage.getItem('runs');
 
@@ -100,4 +100,76 @@ app.get('/senddata/publiclb', (req, res) => {
     leaderboard.sort((a, b) => a.runtime - b.runtime);
 
     res.json(leaderboard);
+});
+
+// Return personal leaderboard
+app.get('/senddata/personallb/:userId', (req, res) => {
+    const runs = localstorage.getItem('runs') || {};
+    const userId = req.params.userId;
+
+    if (!runs[userId]) {
+        return res.json({ message: "No runs found for this user", leaderboard: [] });
+    }
+
+    // Filter alle runs van de user op entries met runtime
+    const completedRuns = runs[userId].filter(run => run.runtime !== undefined);
+    const leaderboard = completedRuns.map(run => ({
+        userId,
+        runtime: run.runtime,
+        lastCheckpointTime: run.tijd || null
+    }));
+
+    // Sorteer op snelste tijd
+    leaderboard.sort((a, b) => a.runtime - b.runtime);
+
+    res.json({ leaderboard });
+});
+
+
+
+
+
+
+
+// Return social leaderboard
+
+
+
+
+
+
+
+
+
+
+
+// Login
+app.post('/senddata/login', (req, res) => {
+    const { username, password } = req.body;
+    const db = localstorage.getItem('users') || {};
+
+    const user = db[username];
+    if (user && user.password === password) {
+        res.json({ success: true, message: 'Login successful', username });
+    } else {
+        res.json({ success: false, message: 'Invalid username or password' });
+    }
+});
+
+
+// Register
+app.post('/senddata/register', (req, res) => {
+    const { username, password } = req.body;
+    let db = localstorage.getItem('users');
+
+    if (!db) db = {}; // als 'users' nog niet bestaat
+
+    if (db[username]) {
+        return res.json({ success: false, message: 'Username already exists' });
+    }
+
+    db[username] = { password };
+    localstorage.setItem('users', db);
+
+    res.json({ success: true, message: 'Registration successful' });
 });
