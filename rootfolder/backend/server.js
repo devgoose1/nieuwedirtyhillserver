@@ -248,20 +248,22 @@ app.post('/senddata/slb/accept', (req, res) => {
 
 
 
-// Alle social leaderboards waar user lid van is
+// Haal alle SLB-groepen waar de gebruiker in zit
 app.get('/senddata/slb/mygroups/:username', (req, res) => {
     const username = req.params.username;
-    let slbs = localstorage.getItem('socialLeaderboards') || {};
-
+    const slbs = localstorage.getItem('socialLeaderboards') || {};
     const groups = [];
+
     for (const groupName in slbs) {
-        if (slbs[groupName].members.includes(username)) {
+        const group = slbs[groupName];
+        if (group.members.includes(username)) {
             groups.push(groupName);
         }
     }
 
     res.json({ groups });
 });
+
 
 
 
